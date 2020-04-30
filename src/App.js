@@ -1,24 +1,57 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useState, useEffect } from "react";
+import WeekdaySelect from "./WeekdaySelect";
+import PostsTable from "./PostsTable";
+import api from "./api";
+
+const weekdays = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+
+function groupPostsByWeekday(posts) {
+  return posts.reduce((postsByWeekday, post) => {
+    const day = new Date(post.createdAt).getDay();
+    const weekday = weekdays[day];
+    return {
+      ...postsByWeekday,
+      [weekday]: (postsByWeekday[weekday] || []).concat(post),
+    };
+  }, {});
+}
 
 function App() {
+  const [postsByWeekday, setPostsByWeekday] = useState([]);
+  const [selectedWeekday, setSelectedWeekday] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    api.getPosts().then((posts) => {
+      const groupedPosts = groupPostsByWeekday(posts);
+      setPostsByWeekday(groupedPosts);
+      setIsLoading(false);
+    });
+  }, []);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      <h1>Posts in /r/reactjs per weekday</h1>
+
+      <WeekdaySelect
+        weekdays={weekdays}
+        selectedWeekday={selectedWeekday}
+        setSelectedWeekday={setSelectedWeekday}
+      />
+
+      {isLoading && <div>Loading...</div>}
+
+      {selectedWeekday && (
+        <PostsTable posts={postsByWeekday[selectedWeekday]} />
+      )}
     </div>
   );
 }
